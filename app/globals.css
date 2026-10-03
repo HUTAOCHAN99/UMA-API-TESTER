@@ -99,3 +99,19 @@ button.ghost { margin:0; width:auto; padding:6px 12px; background:transparent; c
 .rankstats .stat { border-bottom:0; gap:6px; }
 .seg { display:flex; flex-wrap:wrap; gap:6px; }
 button.ghost.on { background:var(--accent); color:#fff; }
+
+/* Circle rank */
+.cfilters { display:grid; grid-template-columns:2fr 1fr 1.2fr 1fr auto; gap:10px; align-items:end; }
+.cfilters label { margin-top:0; }
+.cfilters button { margin:0; width:auto; }
+@media (max-width:700px) { .cfilters { grid-template-columns:1fr 1fr; } }
+.circlerow { gap:12px; }
+.cpos { min-width:52px; font-weight:700; color:var(--muted); }
+.cname { display:grid; flex:1; min-width:0; }
+.cname b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cname span { color:var(--muted); font-size:12px; }
+.cname code { font:12px ui-monospace,monospace; }
+.cfans { display:grid; text-align:right; }
+.cfans span { font-size:12px; color:var(--muted); }
+.cfans b { font-size:16px; color:var(--accent); }
+.cfans .cmonthly { margin-top:2px; }

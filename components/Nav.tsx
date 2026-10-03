@@ -7,6 +7,7 @@ const TABS = [
   { href: "/trainer", label: "Cari trainer" },
   { href: "/lookup", label: "Lookup nama card" },
   { href: "/thresholds", label: "Rank thresholds" },
+  { href: "/circles", label: "Circle rank" },
 ];
 
 export default function Nav() {
