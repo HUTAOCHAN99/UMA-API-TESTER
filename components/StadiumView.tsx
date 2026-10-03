@@ -64,20 +64,33 @@ function Member({ m, names }: { m: StadiumMember; names: Names }) {
   );
 }
 
+const fmt = (n: number) => n.toLocaleString("en-US");
+
 export default function StadiumView({ members, names }: { members: StadiumMember[]; names: Names }) {
   if (!members.length) return <p className="empty">Trainer ini tidak punya data Team Stadium.</p>;
   const groups = [...new Set(members.map((m) => m.distance_type))].sort((a, b) => a - b);
+  const total = members.reduce((sum, m) => sum + m.rank_score, 0);
   return (
     <div>
-      {groups.map((d) => (
-        <section key={d}>
-          <h3>{DISTANCE[d] ?? `Tipe ${d}`}</h3>
-          <div className="tiles">
-            {members.filter((m) => m.distance_type === d).sort((a, b) => a.member_id - b.member_id)
-              .map((m) => <Member key={m.id} m={m} names={names} />)}
-          </div>
-        </section>
-      ))}
+      <div className="teamtotal grand">
+        <span>Total Team Score (semua tim)</span>
+        <b>{fmt(total)}</b>
+      </div>
+      {groups.map((d) => {
+        const list = members.filter((m) => m.distance_type === d).sort((a, b) => a.member_id - b.member_id);
+        const teamScore = list.reduce((sum, m) => sum + m.rank_score, 0);
+        return (
+          <section key={d}>
+            <h3 className="teamhead">
+              <span>{DISTANCE[d] ?? `Tipe ${d}`}</span>
+              <span className="teamtotal">Team Score <b>{fmt(teamScore)}</b></span>
+            </h3>
+            <div className="tiles">
+              {list.map((m) => <Member key={m.id} m={m} names={names} />)}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
