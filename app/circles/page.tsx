@@ -4,6 +4,7 @@ import Nav from "@/components/Nav";
 import Img from "@/components/Img";
 import { RANK_NAMES, parseRanks, rankIcon, type RankRow } from "@/lib/ranks";
 import { findTotal, parseCircles, type CircleRow } from "@/lib/circles";
+import { useLeaders, leaderText } from "@/lib/useLeaders";
 
 const fmt = (n: number | null) => (n === null ? "-" : n.toLocaleString("id-ID"));
 const call = async (id: string, values: Record<string, string>) => {
@@ -40,6 +41,7 @@ export default function CirclesPage() {
   useEffect(() => { load(); }, [load]);
 
   const rows: CircleRow[] = useMemo(() => (body ? parseCircles(body, (page - 1) * limit, th) : []), [body, page, limit, th]);
+  const leaderOf = useLeaders(rows);
   const total = body ? findTotal(body) : null;
   const lastPage = total !== null ? Math.max(1, Math.ceil(total / limit)) : null;
   const hasNext = lastPage !== null ? page < lastPage : rows.length >= limit;
@@ -89,6 +91,7 @@ export default function CirclesPage() {
               <div className="cname">
                 <b>{c.id ? <a className="clink" href={`/club?id=${c.id}`}>{c.name}</a> : c.name}</b>
                 <span>{c.tier ? `Tier ${RANK_NAMES[c.tier - 1]}` : "Tier -"}{c.id && <> · <code>{c.id}</code></>}{c.members !== null && ` · ${c.members} member`}</span>
+                <span className="cleader">Leader <b>{leaderText(leaderOf(c))}</b>{leaderOf(c)?.id && <> · <code>{leaderOf(c)!.id}</code></>}</span>
               </div>
               <div className="cfans">
                 <span>Live fans</span><b>{fmt(c.live)}</b>

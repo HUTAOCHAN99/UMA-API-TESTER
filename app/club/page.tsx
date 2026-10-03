@@ -6,6 +6,7 @@ import { RANK_NAMES, rankIcon } from "@/lib/ranks";
 import { nameVariants } from "@/lib/names";
 import { parseClub, detectLeft, type Club } from "@/lib/club";
 import { parseCircles, findTotal, type CircleRow } from "@/lib/circles";
+import { useLeaders, leaderText } from "@/lib/useLeaders";
 
 const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "-" : n.toLocaleString("id-ID"));
 const sgn = (n: number | null) => (n === null ? "-" : (n > 0 ? "+" : "") + n.toLocaleString("id-ID"));
@@ -123,6 +124,8 @@ export default function ClubPage() {
   const members = useMemo(() => (club ? club.members.filter((m) => status === "all" || (status === "left") === leftMap.has(m.viewerId)).sort((a, b) => val(b) - val(a)) : []), [club, sort, status, leftMap]); // eslint-disable-line react-hooks/exhaustive-deps
   const leftCount = leftMap.size;
   const unexplained = club && club.memberCount !== null ? club.members.length - leftCount - club.memberCount : 0;
+  const leaderOf = useLeaders(results ?? []);
+  const maxGain = Math.max(1, ...(club?.members.map((m) => m.monthGain ?? 0) ?? [0]));
   const sumGain = club?.members.reduce((s, m) => s + (m.monthGain ?? 0), 0) ?? 0;
 
   return (
@@ -148,13 +151,14 @@ export default function ClubPage() {
         <section className="card" style={{ marginTop: 12 }}>
           <span className="teamtotal">{resTotal !== null && resTotal > results.length ? `${results.length} dari ${fmt(resTotal)} hasil (persempit nama untuk hasil lebih spesifik)` : `${results.length} hasil`}</span>
           <div style={{ overflowX: "auto", marginTop: 12 }}>
-            <table className="mtable">
-              <thead><tr><th>Circle</th><th>Rank</th><th>Member</th><th>Live fans</th><th></th></tr></thead>
+            <table className="mtable ctable">
+              <thead><tr><th>Circle</th><th>Leader</th><th>Rank</th><th>Member</th><th>Live fans</th><th></th></tr></thead>
               <tbody>
                 {results.map((c) => (
                   <tr key={c.id}>
                     <td><b>{c.name}</b><div className="msub"><code>{c.id}</code></div></td>
-                    <td>{c.tier ? <Img src={rankIcon(c.tier)} alt={RANK_NAMES[c.tier - 1]} className="rankicon" /> : null} #{fmt(c.rank)}</td>
+                    <td className="leadercell"><b>{leaderText(leaderOf(c))}</b><div className="msub"><code>{leaderOf(c)?.id || ""}</code></div></td>
+                    <td><span className="rankcell">{c.tier ? <Img src={rankIcon(c.tier)} alt={RANK_NAMES[c.tier - 1]} className="rankicon" /> : null}#{fmt(c.rank)}</span></td>
                     <td>{fmt(c.members)}</td>
                     <td>{fmt(c.live ?? c.monthly)}</td>
                     <td><button className="ghost" onClick={() => { setIdInput(c.id); setResults(null); load(c.id); }}>Buka</button></td>
@@ -181,7 +185,7 @@ export default function ClubPage() {
                 </div>
               </div>
             </div>
-            <div className="stats">
+            <div className="stats kpis">
               <div className="stat"><span>Live fans</span><b>{fmt(club.livePoints)}</b></div>
               <div className="stat"><span>Monthly fans</span><b>{fmt(club.monthlyPoint)}</b></div>
               <div className="stat"><span>Rank live</span><b>{club.liveRank !== null ? `#${fmt(club.liveRank)}` : "-"}</b></div>
@@ -194,7 +198,7 @@ export default function ClubPage() {
           </section>
 
           <section className="card" style={{ marginTop: 12 }}>
-            <div className="teamhead">
+            <div className="teamhead sorthead">
               <span className="teamtotal">Member ({club.members.length - leftCount} aktif{leftCount > 0 ? ` · ${leftCount} keluar` : ""})</span>
               <div className="seg">
                 {([["monthGain", "Gain bulan ini"], ["lastDayGain", "Gain terakhir"], ["avgPerDay", "Rata-rata/hari"], ["total", "Total fans"], ["updated", "Terbaru diupdate"]] as [SortKey, string][]).map(([k, l]) => (
@@ -209,12 +213,12 @@ export default function ClubPage() {
                 {unexplained > 0 ? ` ${unexplained} baris belum bisa dibedakan, buka "Gain harian" untuk melihat daily_fans mentahnya.` : ""}
               </p>
             )} */}
-            <div className="seg" style={{ marginTop: 10 }}>
+            <div className="seg statusseg">
               {([["all", `Semua (${club.members.length})`], ["active", `Aktif (${club.members.length - leftCount})`], ["left", `Keluar (${leftCount})`]] as ["all" | "active" | "left", string][]).map(([k, l]) => (
                 <button key={k} className={status === k ? "ghost on" : "ghost"} aria-pressed={status === k} onClick={() => setStatus(k)}>{l}</button>
               ))}
             </div>
-            <div className="tmeta" style={{ marginTop: 10, alignItems: "center" }}>
+            <div className="tmeta autobar">
               <label htmlFor="auto" style={{ margin: 0 }}>Auto-refresh</label>
               <select id="auto" value={auto} onChange={(e) => setAuto(+e.target.value)}>
                 <option value={0}>Mati</option><option value={30}>30 dtk</option><option value={60}>1 menit</option><option value={300}>5 menit</option>
@@ -246,7 +250,7 @@ export default function ClubPage() {
                           <div className="msub" style={{ color: "var(--good, #2ecc71)" }}>{sgn(m.total - base.current[m.viewerId])} sejak dibuka{changed.has(m.viewerId) ? " ●" : ""}</div>
                         )}
                       </td>
-                      <td className="gain">{sgn(m.monthGain)}</td>
+                      <td className="gain"><span className="gbar" style={{ width: `${Math.max(0, (m.monthGain ?? 0) / maxGain * 100)}%` }} />{sgn(m.monthGain)}</td>
                       <td>{sgn(m.lastDayGain)}</td>
                       <td>{fmt(m.avgPerDay)}</td>
                       <td title={m.updated ?? ""}>

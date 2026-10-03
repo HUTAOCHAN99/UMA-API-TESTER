@@ -41,8 +41,12 @@ function Member({ m, names }: { m: StadiumMember; names: Names }) {
         <code>card {m.card_id} · {m.rarity}★ · rank score {m.rank_score}</code>
       </div>
       <div className="mbadge">{STYLE[m.running_style] ?? `Style ${m.running_style}`}</div>
-      <div className="mstats">{stats.map(([k, v]) => <span key={k}>{k} <b>{v}</b></span>)}</div>
-      <div className="apts">{apts.map(([k, v]) => <span key={k} className={v >= 7 ? "hi" : ""}>{k} <b>{apt(v)}</b></span>)}</div>
+      <div className="mstats">{stats.map(([k, v]) => <span key={k}><small>{k}</small><b>{v}</b></span>)}</div>
+      <div className="apts">
+        {([["Lintasan", apts.slice(0, 2)], ["Jarak", apts.slice(2, 6)], ["Gaya", apts.slice(6)]] as [string, [string, number][]][]).map(([g, list]) => (
+          <div key={g} className="aptrow"><em>{g}</em>{list.map(([k, v]) => <span key={k} className={`ap g${apt(v)}`}>{k}<b>{apt(v)}</b></span>)}</div>
+        ))}
+      </div>
       <div className="sparks">{m.factors.map((f, i) => <FactorChip key={i} id={f} names={names} />)}</div>
       <div className="sups">
         {m.support_cards.map((raw, i) => {
@@ -85,7 +89,7 @@ export default function StadiumView({ members, names }: { members: StadiumMember
               <span>{DISTANCE[d] ?? `Tipe ${d}`}</span>
               <span className="teamtotal">Team Score <b>{fmt(teamScore)}</b></span>
             </h3>
-            <div className="tiles">
+            <div className="tiles team">
               {list.map((m) => <Member key={m.id} m={m} names={names} />)}
             </div>
           </section>

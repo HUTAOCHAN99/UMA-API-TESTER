@@ -2,7 +2,7 @@ import { RankRow } from "./ranks";
 
 export type CircleRow = {
   id: string; name: string; rank: number; tier: number | null;
-  live: number | null; monthly: number | null; members: number | null; raw: Record<string, unknown>;
+  live: number | null; monthly: number | null; members: number | null; leaderId: string; leaderName: string | null; raw: Record<string, unknown>;
 };
 
 const num = (v: unknown): number | null => {
@@ -50,7 +50,11 @@ export function parseCircles(body: unknown, offset: number, th: RankRow[]): Circ
     const rank = num(pick(o, ["live_rank", "monthly_rank", "rank", "ranking", "position"])) ?? offset + i + 1;
     const tierRaw = num(pick(o, ["club_rank", "rank_index", "tier"]));
     const tier = tierRaw !== null && tierRaw >= 1 && tierRaw <= 11 ? tierRaw : tierFromPosition(rank, th);
+    const ld = o.leader && typeof o.leader === "object" ? (o.leader as Record<string, unknown>) : {};
+    const leaderId = pick(o, ["leader_viewer_id", "leader_id", "leader_account_id"]) ?? pick(ld, ["viewer_id", "account_id", "id"]);
+    const leaderName = pick(o, ["leader_name", "leader_trainer_name"]) ?? pick(ld, ["trainer_name", "name"]);
     return [{
+      leaderId: leaderId != null ? String(leaderId) : "", leaderName: leaderName != null ? String(leaderName) : null,
       id: String(pick(o, ["circle_id", "id"]) ?? ""),
       name: String(pick(o, ["name", "circle_name"]) ?? "(tanpa nama)"),
       rank, tier,
