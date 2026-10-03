@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Nav from "@/components/Nav";
 import type { Trainee, Support } from "@/lib/gametora";
 
 type Tab = "trainee" | "support";
@@ -46,9 +46,7 @@ export default function LookupPage() {
   return (
     <main>
       <h1>Lookup nama card</h1>
-      <p className="sub">
-        Data dari GameTora. <Link href="/" style={{ color: "var(--accent)" }}>Kembali ke API tester</Link>
-      </p>
+      <Nav />
       <section className="card">
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
           {(["trainee", "support"] as Tab[]).map((t) => (

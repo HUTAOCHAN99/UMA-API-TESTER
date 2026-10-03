@@ -20,3 +20,39 @@ button:disabled { opacity:.6; cursor:wait; }
 .url { color:var(--muted); word-break:break-all; font-family:ui-monospace,monospace; font-size:12px; }
 pre { margin:0; max-height:70vh; overflow:auto; padding:12px; background:var(--bg); border:1px solid var(--line); border-radius:6px; font:12.5px/1.5 ui-monospace,monospace; }
 .empty { color:var(--muted); }
+
+/* Tab navigasi */
+.tabs { display:flex; gap:4px; flex-wrap:wrap; margin:0 0 20px; border-bottom:1px solid var(--line); }
+.tab { padding:8px 14px; color:var(--muted); text-decoration:none; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.tab:hover { color:var(--ink); }
+.tab.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+.tab:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+
+/* Hasil pencarian trainer */
+.results { display:grid; gap:12px; }
+.pager { display:flex; gap:8px; margin-top:12px; }
+.pager button { margin:0; }
+summary { cursor:pointer; color:var(--muted); }
+.tcard h2 { font-size:18px; margin:0; }
+.tcard h3 { font-size:14px; margin:16px 0 8px; color:var(--muted); font-weight:600; }
+.tcard code { font:12px ui-monospace,monospace; color:var(--muted); }
+.thead { display:flex; flex-wrap:wrap; gap:8px 24px; justify-content:space-between; }
+.tmeta { display:flex; flex-wrap:wrap; gap:4px 16px; font-size:13px; color:var(--muted); }
+.tmeta b, .stat b { color:var(--ink); font-weight:600; }
+.tiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.tile { margin:0; text-align:center; }
+.tile figcaption { display:grid; gap:1px; font-size:12px; margin-top:4px; }
+.chara { width:100%; height:200px; object-fit:contain; object-position:center top; background:var(--bg); border:1px solid var(--line); border-radius:8px; }
+.support { width:96px; height:auto; border-radius:8px; border:1px solid var(--line); background:var(--bg); }
+.noimg { display:grid; place-items:center; color:var(--muted); font-size:12px; }
+.supp { display:flex; gap:14px; align-items:flex-start; }
+.stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px 14px; margin-top:12px; }
+.stats.one { grid-template-columns:1fr; margin-top:0; }
+.stat { display:flex; justify-content:space-between; gap:8px; font-size:13px; border-bottom:1px dashed var(--line); padding:2px 0; }
+.stat span { color:var(--muted); }
+.sparks { margin-top:12px; display:grid; gap:6px; }
+.sparkrow { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.sparklabel { color:#fff; font-size:12px; font-weight:600; padding:1px 8px; border-radius:99px; min-width:52px; text-align:center; }
+.chip { padding:1px 6px; border:1px solid var(--line); border-radius:4px; background:var(--bg); }
+details pre { margin-top:8px; max-height:300px; }
+@media (max-width:520px) { .chara { height:150px; } }

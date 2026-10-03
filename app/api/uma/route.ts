@@ -22,8 +22,9 @@ export async function POST(req: NextRequest) {
       if (!v) return NextResponse.json({ error: `${p.name} wajib diisi` }, { status: 400 });
       path = path.replace(`{${p.name}}`, encodeURIComponent(v));
     } else if (v) {
-      // array: pisahkan dengan koma -> param berulang
-      v.split(",").forEach((x) => qs.append(p.name, x.trim()));
+      // hanya param array yang dipisah koma -> param berulang (trainer_name boleh mengandung koma)
+      if (p.array) v.split(",").forEach((x) => x.trim() && qs.append(p.name, x.trim()));
+      else qs.append(p.name, v);
     }
   }
   const query = qs.toString();

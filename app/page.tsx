@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
+import Nav from "@/components/Nav";
 import { ENDPOINTS } from "@/lib/endpoints";
 
 type Result = { url: string; status: number; ok: boolean; ms: number; body: unknown };
@@ -34,7 +34,7 @@ export default function Page() {
   return (
     <main>
       <h1>uma.moe API tester</h1>
-      <p className="sub">Request lewat server Next.js, API key dibaca dari UMA_API_KEY. <Link href="/lookup" style={{ color: "var(--accent)" }}>Lookup nama card</Link></p>
+      <Nav />
       <div className="grid">
         <section className="card">
           <label htmlFor="ep">Endpoint</label>

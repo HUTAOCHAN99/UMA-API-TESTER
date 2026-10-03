@@ -1,15 +1,20 @@
-export type Param = { name: string; path?: boolean; placeholder?: string };
+export type Param = { name: string; path?: boolean; array?: boolean; placeholder?: string };
 export type Endpoint = { id: string; path: string; label: string; params: Param[] };
 
-const q = (names: string[]): Param[] => names.map((name) => ({ name }));
+// arrays = param bertipe array (nilai dipisah koma -> param berulang). Param lain dikirim apa adanya.
+const q = (names: string[], arrays: string[] = []): Param[] =>
+  names.map((name) => (arrays.includes(name) ? { name, array: true } : { name }));
 
 export const ENDPOINTS: Endpoint[] = [
   { id: "search", path: "/api/v3/search", label: "Search inheritance / support card",
     params: q(["page", "limit", "search_type", "trainer_id", "trainer_name", "max_follower_num",
-      "main_parent_id", "parent_id", "parent_rank", "parent_rarity",
+      "main_parent_id", "exclude_main_parent_id", "parent_id", "parent_left_id", "parent_right_id", "exclude_parent_id",
+      "parent_rank", "parent_rarity",
       "blue_sparks", "pink_sparks", "green_sparks", "white_sparks",
-      "min_win_count", "min_white_count", "support_card_id", "sort_by", "sort_order",
-      "player_chara_id", "desired_main_chara_id"]) },
+      "min_win_count", "min_white_count", "support_card_id", "min_limit_break", "max_limit_break", "min_experience",
+      "sort_by", "sort_order", "player_chara_id", "desired_main_chara_id"],
+      ["main_parent_id", "exclude_main_parent_id", "parent_id", "parent_left_id", "parent_right_id",
+       "exclude_parent_id", "blue_sparks", "pink_sparks", "green_sparks", "white_sparks"]) },
   { id: "count", path: "/api/v3/count", label: "Count search results",
     params: q(["search_type", "trainer_id", "trainer_name"]) },
   { id: "circle", path: "/api/v4/circles", label: "Circle detail (viewer_id atau circle_id)",
