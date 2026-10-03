@@ -87,3 +87,15 @@ button.ghost { margin:0; width:auto; padding:6px 12px; background:transparent; c
 .skill.uniq { font-size:13px; font-weight:600; border-color:#d9a400; }
 .fchip:has(img) { padding-left:0; }
 .fchip img { margin-left:2px; }
+/* Rank thresholds */
+.ranks { display:grid; gap:8px; margin-top:12px; }
+.rankrow { display:flex; align-items:center; gap:14px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); }
+.rankicon { width:48px; height:48px; object-fit:contain; flex:none; }
+.rankicon.noimg { font-size:10px; text-align:center; }
+.rankname { display:grid; min-width:44px; }
+.rankname b { font-size:18px; }
+.rankname span { color:var(--muted); font-size:12px; }
+.rankstats { display:flex; flex-wrap:wrap; gap:4px 18px; flex:1; min-width:0; }
+.rankstats .stat { border-bottom:0; gap:6px; }
+.seg { display:flex; flex-wrap:wrap; gap:6px; }
+button.ghost.on { background:var(--accent); color:#fff; }
