@@ -3,7 +3,6 @@ import { ENDPOINTS } from "@/lib/endpoints";
 
 const BASE = "https://uma.moe";
 
-// Proxy sisi server: API key tidak pernah dikirim ke browser.
 export async function POST(req: NextRequest) {
   const key = process.env.UMA_API_KEY;
   if (!key) {

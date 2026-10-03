@@ -202,13 +202,13 @@ export default function ClubPage() {
                 ))}
               </div>
             </div>
-            {club.memberCount !== null && club.members.length !== club.memberCount && (
+            {/* {club.memberCount !== null && club.members.length !== club.memberCount && (
               <p className="empty" style={{ margin: "10px 0 0" }}>
                 API: <b>member_count = {club.memberCount}</b>, tapi <code>members[]</code> berisi <b>{club.members.length}</b> baris, jadi {club.members.length - club.memberCount} baris bukan anggota saat ini (mantan member bulan ini).
                 {leftCount > 0 ? ` Ditandai ${leftCount} (tanda "Diduga keluar" = tebakan dari data yang berhenti lebih awal / last_updated paling lama).` : ""}
                 {unexplained > 0 ? ` ${unexplained} baris belum bisa dibedakan, buka "Gain harian" untuk melihat daily_fans mentahnya.` : ""}
               </p>
-            )}
+            )} */}
             <div className="seg" style={{ marginTop: 10 }}>
               {([["all", `Semua (${club.members.length})`], ["active", `Aktif (${club.members.length - leftCount})`], ["left", `Keluar (${leftCount})`]] as ["all" | "active" | "left", string][]).map(([k, l]) => (
                 <button key={k} className={status === k ? "ghost on" : "ghost"} aria-pressed={status === k} onClick={() => setStatus(k)}>{l}</button>
@@ -260,7 +260,7 @@ export default function ClubPage() {
               </table>
               {members.length === 0 && <p className="empty">Tidak ada member pada filter ini.</p>}
             </div>
-            <p className="empty">&ldquo;Keluar&rdquo; = ada nilai negatif di <code>daily_fans</code> setelah member tercatat. &ldquo;Diduga keluar&rdquo; = kelebihan baris dibanding <code>member_count</code>, dipilih dari data yang berhenti paling awal. &ldquo;Sebelumnya di&rdquo; berasal dari <code>previous_circle_name</code>. Gain dihitung dari selisih total fans kumulatif (<code>daily_fans</code>). &ldquo;Gain terakhir&rdquo; adalah hari terbaru yang tercatat, bisa masih berjalan (live). &ldquo;Update member&rdquo; = <code>last_updated</code> per baris member (hijau &lt;15 mnt, kuning &lt;2 jam). Frekuensi refresh backend tidak didokumentasikan; auto-refresh hanya mengambil ulang data yang ada.</p>
+           
           </section>
           <details style={{ marginTop: 12 }}><summary>Response mentah</summary><pre>{JSON.stringify(raw, null, 2)}</pre></details>
         </>
