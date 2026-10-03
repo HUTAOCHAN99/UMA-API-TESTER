@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
 import TrainerCard, { type Names } from "@/components/TrainerCard";
 import type { SearchResponse } from "@/lib/uma-types";
+import { EMPTY_SKILLS, buildSkillIndex } from "@/lib/skills";
 
 type Result = { url: string; status: number; ok: boolean; ms: number; body: unknown };
 
@@ -25,7 +26,8 @@ export default function TrainerPage() {
   const [f, setF] = useState<Record<string, string>>({ search_type: "all", limit: "20" });
   const [res, setRes] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
-  const [names, setNames] = useState<Names>({ chara: {}, card: {}, support: {} });
+  const [names, setNames] = useState<Names>({ chara: {}, card: {}, support: {}, skill: EMPTY_SKILLS })
+  const [skillsInfo, setSkillsInfo] = useState("");
   const set = (k: string, v: string) => setF((o) => ({ ...o, [k]: v }));
 
   // Nama karakter & support dari GameTora (opsional; gambar tetap tampil kalau gagal)
@@ -37,7 +39,8 @@ export default function TrainerPage() {
       for (const t of d.trainees) { chara[t.id.slice(0, 4)] ??= t.name; card[t.id] = { name: t.name, title: t.title }; }
       const support: Names["support"] = {};
       for (const s of d.supports) support[s.id] = { name: s.name, rarity: s.rarity, type: s.type };
-      setNames({ chara, card, support });
+      setNames({ chara, card, support, skill: buildSkillIndex(d.skills ?? []) });
+      setSkillsInfo(d.skillsInfo ?? "");
     }).catch(() => {});
   }, []);
 
@@ -100,6 +103,7 @@ export default function TrainerPage() {
           </details>
 
           <button onClick={() => search(0)} disabled={loading}>{loading ? "Mencari…" : "Cari"}</button>
+          {skillsInfo && skillsInfo !== "ok" && <p className="empty" style={{ fontSize: 12 }}>Nama/ikon skill tidak tersedia, ditampilkan sebagai ID. {skillsInfo}</p>}
         </section>
 
         <section style={{ minWidth: 0 }}>

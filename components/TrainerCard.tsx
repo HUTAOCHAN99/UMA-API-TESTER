@@ -6,8 +6,10 @@ import Img from "@/components/Img";
 import FactorChip from "@/components/FactorChip";
 import StadiumView from "@/components/StadiumView";
 import type { StadiumMember } from "@/lib/stadium";
+import type { SkillIndex } from "@/lib/skills";
 
 export type Names = {
+  skill: SkillIndex; // nama + ikon skill
   chara: Record<string, string>; // chara_id 4 digit -> nama
   card: Record<string, { name: string; title: string }>; // card_id 6 digit -> nama + judul
   support: Record<string, { name: string; rarity: string; type: string }>;

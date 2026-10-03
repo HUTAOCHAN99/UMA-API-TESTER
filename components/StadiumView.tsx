@@ -3,7 +3,19 @@ import Img from "@/components/Img";
 import FactorChip from "@/components/FactorChip";
 import type { Names } from "@/components/TrainerCard";
 import { charaImg, splitCharaId, supportImg } from "@/lib/images";
+import SkillIcon from "@/components/SkillIcon";
+import { splitSkill, uniqueSkillId } from "@/lib/skills";
 import { DISTANCE, STYLE, apt, splitSupport, type StadiumMember } from "@/lib/stadium";
+
+function SkillBadge({ s, names, unique }: { s: { id: string; level: number }; names: Names; unique?: boolean }) {
+  const info = names.skill.byId[s.id];
+  return (
+    <span className={unique ? "skill uniq" : "skill"} title={`Skill ${s.id}`}>
+      <SkillIcon icon={info?.icon} size={unique ? 24 : 18} />
+      {info?.name ?? `#${s.id}`}{unique ? ` · Lv${s.level}` : ""}
+    </span>
+  );
+}
 
 function Member({ m, names }: { m: StadiumMember; names: Names }) {
   const ref = splitCharaId(m.card_id);
@@ -16,6 +28,10 @@ function Member({ m, names }: { m: StadiumMember; names: Names }) {
     ["Front", m.proper_running_style_nige], ["Pace", m.proper_running_style_senko],
     ["Late", m.proper_running_style_sashi], ["End", m.proper_running_style_oikomi],
   ];
+  const parsed = m.skills.map(splitSkill);
+  const uid = uniqueSkillId(m.card_id);
+  const uniq = parsed.find((x) => x.id === uid) ?? parsed.find((x) => x.id.length === 6 && x.id[0] === "1");
+  const rest = parsed.filter((x) => x !== uniq);
   return (
     <div className="member">
       {ref && <Img src={charaImg(ref)} alt={`Card ${m.card_id}`} className="chara" />}
@@ -39,9 +55,10 @@ function Member({ m, names }: { m: StadiumMember; names: Names }) {
           );
         })}
       </div>
+      {uniq && <SkillBadge s={uniq} names={names} unique />}
       <details>
-        <summary>Skill ({m.skills.length})</summary>
-        <code style={{ wordBreak: "break-word" }}>{m.skills.join(", ")}</code>
+        <summary>Skill ({rest.length})</summary>
+        <div className="skills">{rest.map((x, i) => <SkillBadge key={i} s={x} names={names} />)}</div>
       </details>
     </div>
   );
