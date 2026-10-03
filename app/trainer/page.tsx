@@ -25,7 +25,7 @@ export default function TrainerPage() {
   const [f, setF] = useState<Record<string, string>>({ search_type: "all", limit: "20" });
   const [res, setRes] = useState<Result | null>(null);
   const [loading, setLoading] = useState(false);
-  const [names, setNames] = useState<Names>({ chara: {}, support: {} });
+  const [names, setNames] = useState<Names>({ chara: {}, card: {}, support: {} });
   const set = (k: string, v: string) => setF((o) => ({ ...o, [k]: v }));
 
   // Nama karakter & support dari GameTora (opsional; gambar tetap tampil kalau gagal)
@@ -33,10 +33,11 @@ export default function TrainerPage() {
     fetch("/api/lookup").then((r) => r.json()).then((d) => {
       if (d.error) return;
       const chara: Names["chara"] = {};
-      for (const t of d.trainees) chara[t.id.slice(0, 4)] ??= t.name;
+      const card: Names["card"] = {};
+      for (const t of d.trainees) { chara[t.id.slice(0, 4)] ??= t.name; card[t.id] = { name: t.name, title: t.title }; }
       const support: Names["support"] = {};
       for (const s of d.supports) support[s.id] = { name: s.name, rarity: s.rarity, type: s.type };
-      setNames({ chara, support });
+      setNames({ chara, card, support });
     }).catch(() => {});
   }, []);
 

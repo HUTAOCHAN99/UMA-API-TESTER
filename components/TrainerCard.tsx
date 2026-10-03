@@ -2,18 +2,16 @@
 import { useState } from "react";
 import type { SearchItem } from "@/lib/uma-types";
 import { charaImg, splitCharaId, supportImg } from "@/lib/images";
+import Img from "@/components/Img";
+import FactorChip from "@/components/FactorChip";
+import StadiumView from "@/components/StadiumView";
+import type { StadiumMember } from "@/lib/stadium";
 
 export type Names = {
-  chara: Record<string, string>;
+  chara: Record<string, string>; // chara_id 4 digit -> nama
+  card: Record<string, { name: string; title: string }>; // card_id 6 digit -> nama + judul
   support: Record<string, { name: string; rarity: string; type: string }>;
 };
-
-function Img({ src, alt, className }: { src: string; alt: string; className: string }) {
-  const [bad, setBad] = useState(false);
-  if (bad) return <div className={`${className} noimg`}>tidak ada gambar</div>;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} loading="lazy" referrerPolicy="no-referrer" onError={() => setBad(true)} />;
-}
 
 function CharaTile({ label, id, names }: { label: string; id: unknown; names: Names }) {
   const ref = splitCharaId(id);
@@ -22,7 +20,8 @@ function CharaTile({ label, id, names }: { label: string; id: unknown; names: Na
       {ref ? <Img src={charaImg(ref)} alt={`${label} ${ref.card}`} className="chara" /> : <div className="chara noimg">kosong</div>}
       <figcaption>
         <b>{label}</b>
-        <span>{ref ? names.chara[ref.chara] ?? "—" : "—"}</span>
+        <span>{ref ? names.card[ref.card]?.name ?? names.chara[ref.chara] ?? "—" : "—"}</span>
+        {ref && names.card[ref.card]?.title && <span>{names.card[ref.card].title}</span>}
         <code>{String(id ?? "-")}</code>
       </figcaption>
     </figure>
@@ -45,6 +44,22 @@ export default function TrainerCard({ item, names }: { item: SearchItem; names: 
   const inh = item.inheritance;
   const sc = item.support_card;
   const sup = sc?.support_card_id != null ? names.support[String(sc.support_card_id)] : undefined;
+  const [stadium, setStadium] = useState<StadiumMember[] | null>(null);
+  const [sLoading, setSLoading] = useState(false);
+  const [sErr, setSErr] = useState("");
+
+  async function loadStadium() {
+    setSLoading(true); setSErr("");
+    try {
+      const r = await fetch("/api/uma", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: "profile", values: { account_id: String(item.account_id) } }),
+      });
+      const d = await r.json();
+      if (!d.ok) throw new Error(typeof d.body === "string" ? d.body : JSON.stringify(d.body));
+      setStadium(d.body.team_stadium ?? []);
+    } catch (e) { setSErr(String(e)); } finally { setSLoading(false); }
+  }
   const updated = item.last_updated ? new Date(item.last_updated).toLocaleString("id-ID") : "-";
 
   return (
@@ -91,7 +106,7 @@ export default function TrainerCard({ item, names }: { item: SearchItem; names: 
               return (
                 <div key={key} className="sparkrow">
                   <span className="sparklabel" style={{ background: color }}>{label}</span>
-                  {list.length ? list.map((n, i) => <code key={i} className="chip">{n}</code>) : <em className="empty">-</em>}
+                  {list.length ? list.map((n, i) => <FactorChip key={i} id={n} names={names} />) : <em className="empty">-</em>}
                 </div>
               );
             })}
@@ -113,6 +128,16 @@ export default function TrainerCard({ item, names }: { item: SearchItem; names: 
           </div>
         </section>
       )}
+
+      <section>
+        <h3>Team Stadium</h3>
+        {stadium === null ? (
+          <button className="ghost" onClick={loadStadium} disabled={sLoading || !item.account_id}>
+            {sLoading ? "Memuat profil…" : "Lihat Team Stadium"}
+          </button>
+        ) : <StadiumView members={stadium} names={names} />}
+        {sErr && <p style={{ color: "var(--bad)" }}>Gagal memuat profil: {sErr}</p>}
+      </section>
 
       {!inh && !sc && <p className="empty">Tidak ada data inheritance atau support card pada hasil ini.</p>}
 
