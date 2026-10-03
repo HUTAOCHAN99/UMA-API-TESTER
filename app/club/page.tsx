@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import Img from "@/components/Img";
 import { RANK_NAMES, rankIcon } from "@/lib/ranks";
-import { parseClub, type Club } from "@/lib/club";
+import { nameVariants } from "@/lib/names";
+import { parseClub, detectLeft, type Club } from "@/lib/club";
 import { parseCircles, findTotal, type CircleRow } from "@/lib/circles";
 
 const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "-" : n.toLocaleString("id-ID"));
@@ -33,6 +34,8 @@ export default function ClubPage() {
   const [results, setResults] = useState<CircleRow[] | null>(null);
   const [resTotal, setResTotal] = useState<number | null>(null);
   const [searching, setSearching] = useState(false);
+  const [note, setNote] = useState("");
+  const [status, setStatus] = useState<"all" | "active" | "left">("all");
   const [auto, setAuto] = useState(0); // detik, 0 = mati
   const [now, setNow] = useState(() => Date.now());
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
@@ -74,21 +77,30 @@ export default function ClubPage() {
     const q = input.trim();
     if (!q) { setErr("Isi Circle ID atau nama circle"); return; }
     if (/^\d+$/.test(q)) { setResults(null); load(q); return; }
-    setSearching(true); setErr(""); setClub(null); setResults(null);
+    setSearching(true); setErr(""); setClub(null); setResults(null); setNote("");
     try {
-      const r = await fetch("/api/uma", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "circle-list", values: { page: "0", limit: "20", name: q } }) });
-      const d = await r.json();
-      if (d.error) setErr(d.error);
-      else if (!d.ok) setErr(`HTTP ${d.status}: ${typeof d.body === "string" ? d.body : JSON.stringify(d.body)}`);
-      else {
-        const rows = parseCircles(d.body, 0, []);
-        setResTotal(findTotal(d.body));
-        if (rows.length === 1) { setIdInput(rows[0].id); load(rows[0].id); }
-        else if (rows.length === 0) setErr(`Tidak ada circle dengan nama "${q}"`);
-        else setResults(rows);
+      const fetchList = async (name: string) => {
+        const r = await fetch("/api/uma", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: "circle-list", values: { page: "0", limit: "20", name } }) });
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        if (!d.ok) throw new Error(`HTTP ${d.status}: ${typeof d.body === "string" ? d.body : JSON.stringify(d.body)}`);
+        return { rows: parseCircles(d.body, 0, []), total: findTotal(d.body) };
+      };
+      // coba tulisan asli dulu; kalau kosong, coba varian kurung fullwidth/ASCII, terakhir tanpa kurung
+      let used = q, res = await fetchList(q);
+      if (res.rows.length === 0) {
+        for (const v of nameVariants(q).slice(1)) {
+          const r2 = await fetchList(v);
+          if (r2.rows.length) { res = r2; used = v; break; }
+        }
       }
-    } catch (e) { setErr(String(e)); }
+      setResTotal(res.total);
+      if (used !== q) setNote(`Tidak ada hasil untuk "${q}". Menampilkan hasil untuk "${used}".`);
+      if (res.rows.length === 1) { setIdInput(res.rows[0].id); load(res.rows[0].id); }
+      else if (res.rows.length === 0) setErr(`Tidak ada circle dengan nama "${q}"`);
+      else setResults(res.rows);
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
     setSearching(false);
   }, [load]);
 
@@ -107,7 +119,10 @@ export default function ClubPage() {
   }, [auto, club, load]);
 
   const val = (m: Club["members"][number]) => (sort === "updated" ? ts(m.updated) : m[sort]) ?? -Infinity;
-  const members = useMemo(() => (club ? [...club.members].sort((a, b) => val(b) - val(a)) : []), [club, sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  const leftMap = useMemo(() => (club ? detectLeft(club) : new Map()), [club]);
+  const members = useMemo(() => (club ? club.members.filter((m) => status === "all" || (status === "left") === leftMap.has(m.viewerId)).sort((a, b) => val(b) - val(a)) : []), [club, sort, status, leftMap]); // eslint-disable-line react-hooks/exhaustive-deps
+  const leftCount = leftMap.size;
+  const unexplained = club && club.memberCount !== null ? club.members.length - leftCount - club.memberCount : 0;
   const sumGain = club?.members.reduce((s, m) => s + (m.monthGain ?? 0), 0) ?? 0;
 
   return (
@@ -128,6 +143,7 @@ export default function ClubPage() {
         {err && <p style={{ color: "var(--bad)" }}>Gagal memuat: {err}</p>}
       </section>
 
+      {note && <p className="empty">{note}</p>}
       {results && (
         <section className="card" style={{ marginTop: 12 }}>
           <span className="teamtotal">{resTotal !== null && resTotal > results.length ? `${results.length} dari ${fmt(resTotal)} hasil (persempit nama untuk hasil lebih spesifik)` : `${results.length} hasil`}</span>
@@ -179,12 +195,24 @@ export default function ClubPage() {
 
           <section className="card" style={{ marginTop: 12 }}>
             <div className="teamhead">
-              <span className="teamtotal">Member ({club.members.length})</span>
+              <span className="teamtotal">Member ({club.members.length - leftCount} aktif{leftCount > 0 ? ` · ${leftCount} keluar` : ""})</span>
               <div className="seg">
                 {([["monthGain", "Gain bulan ini"], ["lastDayGain", "Gain terakhir"], ["avgPerDay", "Rata-rata/hari"], ["total", "Total fans"], ["updated", "Terbaru diupdate"]] as [SortKey, string][]).map(([k, l]) => (
                   <button key={k} className={sort === k ? "ghost on" : "ghost"} aria-pressed={sort === k} onClick={() => setSort(k)}>{l}</button>
                 ))}
               </div>
+            </div>
+            {club.memberCount !== null && club.members.length !== club.memberCount && (
+              <p className="empty" style={{ margin: "10px 0 0" }}>
+                API: <b>member_count = {club.memberCount}</b>, tapi <code>members[]</code> berisi <b>{club.members.length}</b> baris, jadi {club.members.length - club.memberCount} baris bukan anggota saat ini (mantan member bulan ini).
+                {leftCount > 0 ? ` Ditandai ${leftCount} (tanda "Diduga keluar" = tebakan dari data yang berhenti lebih awal / last_updated paling lama).` : ""}
+                {unexplained > 0 ? ` ${unexplained} baris belum bisa dibedakan, buka "Gain harian" untuk melihat daily_fans mentahnya.` : ""}
+              </p>
+            )}
+            <div className="seg" style={{ marginTop: 10 }}>
+              {([["all", `Semua (${club.members.length})`], ["active", `Aktif (${club.members.length - leftCount})`], ["left", `Keluar (${leftCount})`]] as ["all" | "active" | "left", string][]).map(([k, l]) => (
+                <button key={k} className={status === k ? "ghost on" : "ghost"} aria-pressed={status === k} onClick={() => setStatus(k)}>{l}</button>
+              ))}
             </div>
             <div className="tmeta" style={{ marginTop: 10, alignItems: "center" }}>
               <label htmlFor="auto" style={{ margin: 0 }}>Auto-refresh</label>
@@ -199,13 +227,15 @@ export default function ClubPage() {
                 <thead><tr><th>#</th><th>Member</th><th>Total fans</th><th>Gain bulan ini</th><th>Gain terakhir</th><th>Rata-rata/hari</th><th>Update member</th></tr></thead>
                 <tbody>
                   {members.map((m, i) => (
-                    <tr key={m.viewerId || i}>
+                    <tr key={m.viewerId || i} style={leftMap.has(m.viewerId) ? { opacity: 0.6 } : undefined}>
                       <td>{i + 1}</td>
                       <td>
                         <b>{m.name}</b>{m.isLeader && <span className="mbadge" style={{ marginLeft: 6 }}>Leader</span>}
-                        <div className="msub"><code>{m.viewerId}</code></div>
-                        {m.days.length > 0 && (
+                        {leftMap.has(m.viewerId) && <span className="mbadge" style={{ marginLeft: 6, color: "var(--bad)" }} title={leftMap.get(m.viewerId)!.reason}>{leftMap.get(m.viewerId)!.kind === "marker" ? "Keluar" : "Diduga keluar"}</span>}
+                        <div className="msub"><code>{m.viewerId}</code>{m.prevCircleName && ` · sebelumnya di ${m.prevCircleName}`}</div>
+                        {(m.days.length > 0 || m.raw.length > 0) && (
                           <details><summary>Gain harian</summary>
+                            <div className="msub" style={{ wordBreak: "break-all" }}>daily_fans mentah: <code>{JSON.stringify(m.raw)}</code></div>
                             <div className="daygains">{m.days.map((d) => <span key={d.day} className="chip">H{d.day}: <b>{sgn(d.gain)}</b></span>)}</div>
                           </details>
                         )}
@@ -228,8 +258,9 @@ export default function ClubPage() {
                   ))}
                 </tbody>
               </table>
+              {members.length === 0 && <p className="empty">Tidak ada member pada filter ini.</p>}
             </div>
-            <p className="empty">Gain dihitung dari selisih total fans kumulatif (<code>daily_fans</code>). &ldquo;Gain terakhir&rdquo; adalah hari terbaru yang tercatat, bisa masih berjalan (live). &ldquo;Update member&rdquo; = <code>last_updated</code> per baris member (hijau &lt;15 mnt, kuning &lt;2 jam). Frekuensi refresh backend tidak didokumentasikan; auto-refresh hanya mengambil ulang data yang ada.</p>
+            <p className="empty">&ldquo;Keluar&rdquo; = ada nilai negatif di <code>daily_fans</code> setelah member tercatat. &ldquo;Diduga keluar&rdquo; = kelebihan baris dibanding <code>member_count</code>, dipilih dari data yang berhenti paling awal. &ldquo;Sebelumnya di&rdquo; berasal dari <code>previous_circle_name</code>. Gain dihitung dari selisih total fans kumulatif (<code>daily_fans</code>). &ldquo;Gain terakhir&rdquo; adalah hari terbaru yang tercatat, bisa masih berjalan (live). &ldquo;Update member&rdquo; = <code>last_updated</code> per baris member (hijau &lt;15 mnt, kuning &lt;2 jam). Frekuensi refresh backend tidak didokumentasikan; auto-refresh hanya mengambil ulang data yang ada.</p>
           </section>
           <details style={{ marginTop: 12 }}><summary>Response mentah</summary><pre>{JSON.stringify(raw, null, 2)}</pre></details>
         </>

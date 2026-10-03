@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import TrainerCard, { type Names } from "@/components/TrainerCard";
 import type { SearchResponse } from "@/lib/uma-types";
+import { nameVariants } from "@/lib/names";
 import { EMPTY_SKILLS, buildSkillIndex } from "@/lib/skills";
 
 type Result = { url: string; status: number; ok: boolean; ms: number; body: unknown };
@@ -28,6 +29,8 @@ export default function TrainerPage() {
   const [loading, setLoading] = useState(false);
   const [names, setNames] = useState<Names>({ chara: {}, card: {}, support: {}, skill: EMPTY_SKILLS })
   const [skillsInfo, setSkillsInfo] = useState("");
+  const [note, setNote] = useState("");
+  const used = useRef({ query: "", name: "" }); // varian nama yang dipakai di halaman 1, supaya paging konsisten
   const set = (k: string, v: string) => setF((o) => ({ ...o, [k]: v }));
 
   // Nama karakter & support dari GameTora (opsional; gambar tetap tampil kalau gagal)
@@ -46,14 +49,32 @@ export default function TrainerPage() {
 
   async function search(page = 0) {
     setLoading(true);
-    try {
-      const r = await fetch("/api/uma", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: "search", values: { ...f, page: String(page) } }),
-      });
+    const call = async (name: string) => {
+      const values: Record<string, string> = { ...f, page: String(page) };
+      if (name) values.trainer_name = name;
+      const r = await fetch("/api/uma", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: "search", values }) });
       const data = await r.json();
-      setRes("status" in data ? data : { url: "", status: r.status, ok: false, ms: 0, body: data });
+      return (("status" in data ? data : { url: "", status: r.status, ok: false, ms: 0, body: data }) as Result);
+    };
+    const hasItems = (x: Result) => x.ok && ((x.body as SearchResponse)?.items?.length ?? 0) > 0;
+    try {
+      const q = (f.trainer_name ?? "").trim();
+      if (page > 0 && q && used.current.query === q) {
+        setRes(await call(used.current.name)); // halaman berikutnya: pakai varian yang sama
+      } else {
+        let r = await call(q);
+        let name = q;
+        setNote("");
+        // tulisan asli kosong -> coba varian kurung fullwidth/ASCII, terakhir tanpa kurung
+        if (q && r.ok && !hasItems(r)) {
+          for (const v of nameVariants(q).slice(1)) {
+            const r2 = await call(v);
+            if (hasItems(r2)) { r = r2; name = v; setNote(`Tidak ada hasil untuk "${q}". Menampilkan hasil untuk "${name}".`); break; }
+          }
+        }
+        used.current = { query: q, name };
+        setRes(r);
+      }
     } catch (e) {
       setRes({ url: "", status: 0, ok: false, ms: 0, body: String(e) });
     } finally {
@@ -128,6 +149,7 @@ export default function TrainerPage() {
                 <span>Total <b>{body.total ?? items.length}</b></span>
                 <span>Halaman <b>{page + 1}</b>{pages ? ` / ${pages}` : ""}</span>
               </div>
+              {note && <p className="empty">{note}</p>}
               {items.length === 0 && <div className="card"><p className="empty">Tidak ada hasil.</p></div>}
               <div className="results">
                 {items.map((it, i) => <TrainerCard key={`${it.account_id}-${i}`} item={it} names={names} />)}
