@@ -87,7 +87,7 @@ export default function CirclesPage() {
               {c.tier ? <Img src={rankIcon(c.tier)} alt={`Rank ${RANK_NAMES[c.tier - 1]}`} className="rankicon" />
                 : <div className="rankicon noimg">-</div>}
               <div className="cname">
-                <b>{c.name}</b>
+                <b>{c.id ? <a className="clink" href={`/club?id=${c.id}`}>{c.name}</a> : c.name}</b>
                 <span>{c.tier ? `Tier ${RANK_NAMES[c.tier - 1]}` : "Tier -"}{c.id && <> · <code>{c.id}</code></>}{c.members !== null && ` · ${c.members} member`}</span>
               </div>
               <div className="cfans">

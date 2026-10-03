@@ -115,3 +115,21 @@ button.ghost.on { background:var(--accent); color:#fff; }
 .cfans span { font-size:12px; color:var(--muted); }
 .cfans b { font-size:16px; color:var(--accent); }
 .cfans .cmonthly { margin-top:2px; }
+
+/* Detail club */
+.clubform { grid-template-columns:2fr 1fr 1fr auto; }
+.clubhead { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.rankicon.big { width:72px; height:72px; }
+.clubinfo { display:grid; gap:6px; min-width:0; }
+.mtable { width:100%; border-collapse:collapse; font-size:14px; }
+.mtable th { text-align:left; color:var(--muted); font-weight:500; padding:4px 8px; white-space:nowrap; }
+.mtable td { padding:8px; border-top:1px solid var(--line); vertical-align:top; }
+.mtable td:nth-child(n+3) { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.mtable th:nth-child(n+3) { text-align:right; }
+.mtable .gain { color:var(--ok); font-weight:600; }
+.msub code { font:12px ui-monospace,monospace; color:var(--muted); }
+.daygains { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; max-width:560px; }
+.daygains .chip { font-size:11px; }
+@media (max-width:700px) { .clubform { grid-template-columns:1fr 1fr; } }
+.clink { color:inherit; text-decoration:none; }
+.clink:hover { color:var(--accent); text-decoration:underline; }
