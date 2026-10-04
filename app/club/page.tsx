@@ -4,13 +4,13 @@ import Nav from "@/components/Nav";
 import Img from "@/components/Img";
 import { RANK_NAMES, rankIcon } from "@/lib/ranks";
 import { nameVariants } from "@/lib/names";
-import { parseClub, detectLeft, type Club } from "@/lib/club";
+import { parseClub, detectLeft, windowGain, weeklyBuckets, type Club } from "@/lib/club";
 import { parseCircles, findTotal, type CircleRow } from "@/lib/circles";
 import { useLeaders, leaderText } from "@/lib/useLeaders";
 
 const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "-" : n.toLocaleString("id-ID"));
 const sgn = (n: number | null) => (n === null ? "-" : (n > 0 ? "+" : "") + n.toLocaleString("id-ID"));
-type SortKey = "monthGain" | "lastDayGain" | "avgPerDay" | "total" | "updated";
+type SortKey = "monthGain" | "weekGain" | "lastDayGain" | "avgPerDay" | "total" | "updated";
 const ts = (v: string | null) => { const t = v ? Date.parse(v) : NaN; return isNaN(t) ? null : t; };
 function ago(t: number | null, now: number) {
   if (t === null) return "-";
@@ -119,7 +119,9 @@ export default function ClubPage() {
     return () => clearInterval(t);
   }, [auto, club, load]);
 
-  const val = (m: Club["members"][number]) => (sort === "updated" ? ts(m.updated) : m[sort]) ?? -Infinity;
+  const endDay = club ? Math.max(-1, ...club.members.map((m) => m.lastDay)) : -1; // hari kompetisi terbaru di club
+  const wk = (m: Club["members"][number]) => windowGain(m.days, endDay, 7);
+  const val = (m: Club["members"][number]) => (sort === "updated" ? ts(m.updated) : sort === "weekGain" ? wk(m) : m[sort]) ?? -Infinity;
   const leftMap = useMemo(() => (club ? detectLeft(club) : new Map()), [club]);
   const members = useMemo(() => (club ? club.members.filter((m) => status === "all" || (status === "left") === leftMap.has(m.viewerId)).sort((a, b) => val(b) - val(a)) : []), [club, sort, status, leftMap]); // eslint-disable-line react-hooks/exhaustive-deps
   const leftCount = leftMap.size;
@@ -127,6 +129,13 @@ export default function ClubPage() {
   const leaderOf = useLeaders(results ?? []);
   const maxGain = Math.max(1, ...(club?.members.map((m) => m.monthGain ?? 0) ?? [0]));
   const sumGain = club?.members.reduce((s, m) => s + (m.monthGain ?? 0), 0) ?? 0;
+  const sumWeek = club ? club.members.reduce((s, m) => s + (windowGain(m.days, endDay, 7) ?? 0), 0) : 0;
+  const clubWeeks = useMemo(() => {
+    if (!club || endDay < 1) return [];
+    const all = club.members.flatMap((m) => m.days); // gabungan gain harian semua member (hari sama dijumlah)
+    const byDay = new Map<number, number>(); all.forEach((d) => byDay.set(d.day, (byDay.get(d.day) ?? 0) + d.gain));
+    return weeklyBuckets([...byDay].map(([day, gain]) => ({ day, gain })), endDay);
+  }, [club, endDay]);
 
   return (
     <main>
@@ -193,6 +202,7 @@ export default function ClubPage() {
               <div className="stat"><span>Ke tier atas</span><b>{fmt(club.toNext)}</b></div>
               <div className="stat"><span>Buffer tier bawah</span><b>{fmt(club.toLower)}</b></div>
               <div className="stat"><span>Total gain member</span><b>{fmt(sumGain)}</b></div>
+              <div className="stat"><span>Fans 7 hari terakhir</span><b>{sgn(sumWeek)}</b></div>
               <div className="stat"><span>Update terakhir</span><b>{club.lastUpdated ? new Date(club.lastUpdated).toLocaleString("id-ID") : "-"}</b></div>
             </div>
           </section>
@@ -201,7 +211,7 @@ export default function ClubPage() {
             <div className="teamhead sorthead">
               <span className="teamtotal">Member ({club.members.length - leftCount} aktif{leftCount > 0 ? ` · ${leftCount} keluar` : ""})</span>
               <div className="seg">
-                {([["monthGain", "Gain bulan ini"], ["lastDayGain", "Gain terakhir"], ["avgPerDay", "Rata-rata/hari"], ["total", "Total fans"], ["updated", "Terbaru diupdate"]] as [SortKey, string][]).map(([k, l]) => (
+                {([["monthGain", "Gain bulan ini"], ["weekGain", "Gain 7 hari"], ["lastDayGain", "Gain terakhir"], ["avgPerDay", "Rata-rata/hari"], ["total", "Total fans"], ["updated", "Terbaru diupdate"]] as [SortKey, string][]).map(([k, l]) => (
                   <button key={k} className={sort === k ? "ghost on" : "ghost"} aria-pressed={sort === k} onClick={() => setSort(k)}>{l}</button>
                 ))}
               </div>
@@ -218,6 +228,12 @@ export default function ClubPage() {
                 <button key={k} className={status === k ? "ghost on" : "ghost"} aria-pressed={status === k} onClick={() => setStatus(k)}>{l}</button>
               ))}
             </div>
+            {clubWeeks.length > 0 && (
+              <div className="daygains" style={{ marginTop: 10 }}>
+                <span className="msub">Fans club per minggu:</span>{" "}
+                {clubWeeks.map((w) => <span key={w.week} className="chip" title={`Hari kompetisi H${w.from}-H${w.to}`}>Minggu {w.week}{w.partial ? " (berjalan)" : ""}: <b>{sgn(w.gain)}</b></span>)}
+              </div>
+            )}
             <div className="tmeta autobar">
               <label htmlFor="auto" style={{ margin: 0 }}>Auto-refresh</label>
               <select id="auto" value={auto} onChange={(e) => setAuto(+e.target.value)}>
@@ -228,7 +244,7 @@ export default function ClubPage() {
             </div>
             <div style={{ overflowX: "auto", marginTop: 12 }}>
               <table className="mtable">
-                <thead><tr><th>#</th><th>Member</th><th>Total fans</th><th>Gain bulan ini</th><th>Gain terakhir</th><th>Rata-rata/hari</th><th>Update member</th></tr></thead>
+                <thead><tr><th>#</th><th>Member</th><th>Total fans</th><th>Gain bulan ini</th><th>Gain 7 hari</th><th>Gain terakhir</th><th>Rata-rata/hari</th><th>Update member</th></tr></thead>
                 <tbody>
                   {members.map((m, i) => (
                     <tr key={m.viewerId || i} style={leftMap.has(m.viewerId) ? { opacity: 0.6 } : undefined}>
@@ -240,6 +256,7 @@ export default function ClubPage() {
                         {(m.days.length > 0 || m.raw.length > 0) && (
                           <details><summary>Gain harian</summary>
                             <div className="msub" style={{ wordBreak: "break-all" }}>daily_fans mentah: <code>{JSON.stringify(m.raw)}</code></div>
+                            <div className="daygains">{weeklyBuckets(m.days, m.lastDay).map((w) => <span key={"w" + w.week} className="chip" title={`H${w.from}-H${w.to}`}>Minggu {w.week}{w.partial ? " (berjalan)" : ""}: <b>{sgn(w.gain)}</b></span>)}</div>
                             <div className="daygains">{m.days.map((d) => <span key={d.day} className="chip">H{d.day}: <b>{sgn(d.gain)}</b></span>)}</div>
                           </details>
                         )}
@@ -251,6 +268,7 @@ export default function ClubPage() {
                         )}
                       </td>
                       <td className="gain"><span className="gbar" style={{ width: `${Math.max(0, (m.monthGain ?? 0) / maxGain * 100)}%` }} />{sgn(m.monthGain)}</td>
+                      <td>{sgn(wk(m))}</td>
                       <td>{sgn(m.lastDayGain)}</td>
                       <td>{fmt(m.avgPerDay)}</td>
                       <td title={m.updated ?? ""}>

@@ -86,3 +86,23 @@ export function detectLeft(c: Club): Map<string, LeftInfo> {
     .forEach((m) => out.set(m.viewerId, { kind: "likely", reason: `data berhenti di H${m.lastDay} (member lain sampai H${maxDay}); update terakhir ${m.updated ?? "-"}` }));
   return out;
 }
+
+// Gain N hari terakhir (default 7) dengan jendela yang sama untuk semua member: hari kompetisi (endDay-n+1 .. endDay).
+// Member yang baru masuk / datanya berhenti lebih awal otomatis hanya terhitung pada hari yang tercatat.
+export function windowGain(days: { day: number; gain: number }[], endDay: number, n = 7): number | null {
+  if (endDay < 1) return null;
+  const sel = days.filter((d) => d.day > endDay - n && d.day <= endDay);
+  return sel.length ? sel.reduce((s, d) => s + d.gain, 0) : 0;
+}
+
+// Gain per minggu kalender kompetisi: Minggu 1 = H1-7, Minggu 2 = H8-14, dst. Minggu terakhir bisa belum penuh.
+export type WeekBucket = { week: number; from: number; to: number; gain: number; partial: boolean };
+export function weeklyBuckets(days: { day: number; gain: number }[], endDay: number): WeekBucket[] {
+  const out: WeekBucket[] = [];
+  for (let w = 1; (w - 1) * 7 + 1 <= endDay; w++) {
+    const from = (w - 1) * 7 + 1, to = Math.min(w * 7, endDay);
+    const gain = days.filter((d) => d.day >= from && d.day <= to).reduce((s, d) => s + d.gain, 0);
+    out.push({ week: w, from, to, gain, partial: to - from + 1 < 7 });
+  }
+  return out;
+}
