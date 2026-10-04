@@ -60,7 +60,7 @@ function Member({ m, names }: { m: StadiumMember; names: Names }) {
         })}
       </div>
       {uniq && <SkillBadge s={uniq} names={names} unique />}
-      <details>
+      <details open>
         <summary>Skill ({rest.length})</summary>
         <div className="skills">{rest.map((x, i) => <SkillBadge key={i} s={x} names={names} />)}</div>
       </details>
